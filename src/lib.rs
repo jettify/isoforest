@@ -1,4 +1,4 @@
-pub mod tree;
 pub mod forest;
-pub use tree::{IsolationTreeParams, IsolationTree};
+pub mod tree;
 pub use forest::{IsolationForest, IsolationForestParams};
+pub use tree::{IsolationTree, IsolationTreeParams};

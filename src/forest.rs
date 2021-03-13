@@ -1,14 +1,13 @@
 use super::tree::{IsolationTree, IsolationTreeParams};
 
 use linfa::{
-    dataset::{DatasetBase, Targets},
+    dataset::DatasetBase,
     error::{Error, Result},
     traits::{Fit, Predict},
     Float,
 };
 use ndarray::{Array1, ArrayBase, Data, Ix2};
 use ndarray_rand::rand::Rng;
-
 
 #[derive(Debug, Clone)]
 pub struct IsolationForestParams<R: Rng> {
@@ -54,7 +53,7 @@ pub struct IsolationForest<F> {
     pub trees: Vec<IsolationTree<F>>,
 }
 
-impl<'a, F: Float, R: Rng + Clone, D: Data<Elem = F>, T: Targets> Fit<'a, ArrayBase<D, Ix2>, T>
+impl<'a, F: Float, R: Rng + Clone, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T>
     for IsolationForestParams<R>
 {
     type Object = Result<IsolationForest<F>>;
@@ -63,8 +62,7 @@ impl<'a, F: Float, R: Rng + Clone, D: Data<Elem = F>, T: Targets> Fit<'a, ArrayB
         let mut trees = Vec::with_capacity(self.num_estimators);
         self.validate()?;
         for _ in 0..self.num_estimators {
-            let tree = self.tree_hyperparameters
-                .fit(&dataset).unwrap();
+            let tree = self.tree_hyperparameters.fit(&dataset).unwrap();
             trees.push(tree);
         }
         let forest = IsolationForest { trees };
@@ -79,9 +77,9 @@ impl<F: Float, D: Data<Elem = F>> Predict<&ArrayBase<D, Ix2>, Result<Array1<F>>>
         let mut result: Array1<F> = Array1::zeros(x.nrows());
         let num_trees = F::from_usize(self.trees.len()).unwrap();
         for i in 0..self.trees.len() {
-            result = result + self.trees[i].predict(&x) / (num_trees*self.trees[i].average_path);
+            result = result + self.trees[i].predict(&x) / (num_trees * self.trees[i].average_path);
         }
-        result.mapv_inplace(|v| {F::from_f32(2.0).unwrap().powf(-v)});
+        result.mapv_inplace(|v| F::from_f32(2.0).unwrap().powf(-v));
         Ok(result)
     }
 }
@@ -118,6 +116,6 @@ mod tests {
             .unwrap();
 
         let preds = model.predict(&data).unwrap();
-        assert_eq!(preds.mapv(|a| if a > 0.5 {1} else {0}).sum(), 2);
+        assert_eq!(preds.mapv(|a| if a > 0.5 { 1 } else { 0 }).sum(), 2);
     }
 }

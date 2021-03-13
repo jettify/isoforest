@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::fmt::Debug;
 
 use linfa::{
-    dataset::{DatasetBase, Targets},
+    dataset::DatasetBase,
     error::{Error, Result},
     traits::{Fit, Predict},
     Float,
@@ -194,7 +194,7 @@ impl<'a, F: Float + std::fmt::Debug> TreeNode<F> {
         }
     }
 
-    fn fit<D: Data<Elem = F>, T: Targets, R: Rng + Clone>(
+    fn fit<D: Data<Elem = F>, T, R: Rng + Clone>(
         data: &DatasetBase<ArrayBase<D, Ix2>, T>,
         mask: RowMask,
         hyperparameters: &IsolationTreeParams<R>,
@@ -299,7 +299,7 @@ pub struct IsolationTree<F> {
     pub average_path: F,
 }
 
-impl<'a, F: Float, R: Rng + Clone, D: Data<Elem = F>, T: Targets> Fit<'a, ArrayBase<D, Ix2>, T>
+impl<'a, F: Float, R: Rng + Clone, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T>
     for IsolationTreeParams<R>
 {
     type Object = Result<IsolationTree<F>>;

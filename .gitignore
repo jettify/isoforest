@@ -1,4 +1,7 @@
 /target
+/py-isoforest/target
+/py-isoforest/build
+/py-isoforest/dist
 Cargo.lock
 tags
 cscope.files

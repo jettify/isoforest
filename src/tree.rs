@@ -1,12 +1,12 @@
 use ndarray::{s, Array1, ArrayBase, ArrayView1, ArrayViewMut1, Axis, Data, Ix1, Ix2, Slice};
-use ndarray_rand::{rand::seq::SliceRandom, rand::Rng, rand_distr::Uniform};
-use ndarray_rand::{rand::SeedableRng, RandomExt};
+use ndarray_rand::rand::SeedableRng;
+use ndarray_rand::{rand::seq::SliceRandom, rand::Rng};
 use rand_isaac::Isaac64Rng;
 use std::fmt::Debug;
 
 use linfa::{
     dataset::DatasetBase,
-    error::{Error, Result},
+    error::Result,
     traits::{Fit, Predict},
     Float,
 };
@@ -92,6 +92,21 @@ impl IsolationTreeParams {
 
     pub fn seed(&self) -> u64 {
         self.seed
+    }
+
+    pub fn num_features(&self, ncols: usize) -> usize {
+        match self.max_features {
+            MaxFeatures::Ratio(ratio) => clip((ncols as f32 * ratio) as usize, 1, ncols),
+            MaxFeatures::Absolute(num) => clip(num, 1, ncols),
+        }
+    }
+
+    pub fn num_samples(&self, nrows: usize) -> usize {
+        match self.max_samples {
+            MaxSamples::Auto => usize::min(256, nrows),
+            MaxSamples::Ratio(ratio) => clip((nrows as f32 * ratio).ceil() as usize, 1, nrows),
+            MaxSamples::Absolute(num) => clip(num, 1, nrows),
+        }
     }
 
     pub fn validate(&self) -> Result<()> {
@@ -230,17 +245,8 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
         let cols = dataset.records().ncols();
 
         let mut rng = Isaac64Rng::seed_from_u64(self.seed());
-
-        let max_features: usize = match self.max_features {
-            MaxFeatures::Ratio(ratio) => clip((cols as f32 * ratio) as usize, 1, cols),
-            MaxFeatures::Absolute(num) => clip(num, 1, cols),
-        };
-
-        let max_samples: usize = match self.max_samples {
-            MaxSamples::Auto => usize::min(256, nrows),
-            MaxSamples::Ratio(ratio) => clip((nrows as f32 * ratio) as usize, 1, cols),
-            MaxSamples::Absolute(num) => clip(num, 1, nrows),
-        };
+        let max_features = self.num_features(cols);
+        let max_samples = self.num_samples(nrows);
 
         let _v: Vec<usize> = (0..cols).collect();
         let features: Vec<usize> = _v
@@ -248,10 +254,13 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
             .cloned()
             .collect();
 
-        let _v: Vec<usize> = (0..nrows).collect();
-        let mut sample: Vec<usize> = _v.choose_multiple(&mut rng, max_samples).cloned().collect();
-        //sample.sort();
-        let mut sample: Array1<usize> = Array1::from(sample);
+        let sample_vec: Vec<usize> = (0..nrows)
+            .collect::<Vec<usize>>()
+            .choose_multiple(&mut rng, max_samples)
+            .cloned()
+            .collect();
+
+        let mut sample: Array1<usize> = Array1::from(sample_vec);
 
         let mut rng = Isaac64Rng::seed_from_u64(self.seed());
 
@@ -352,8 +361,6 @@ mod tests {
 
     use approx::assert_relative_eq;
     use ndarray::array;
-    use ndarray_rand::rand::SeedableRng;
-    use rand_isaac::Isaac64Rng;
 
     #[test]
     fn test_average_path_lenght() {
@@ -391,7 +398,7 @@ mod tests {
             [6.0, 3.0],
             [-4.0, 7.0]
         ];
-        let seed: u64 = 3;
+        let seed: u64 = 2;
         let dataset = DatasetBase::new(data.clone(), ());
         let sample_size = dataset.records().nrows();
         let num_features = dataset.records().ncols();
@@ -402,7 +409,6 @@ mod tests {
         );
         let tree = params.fit(&dataset).unwrap();
         let preds = tree.predict(&data);
-        println!("{}", preds.mapv(|a| if a > 0.5 { 1 } else { 0 }));
-        println!("{:?}", preds / tree.average_path);
+        assert_eq!(preds.mapv(|a| if a / tree.average_path > 0.0 { 1 } else { 0 }).sum(), 8);
     }
 }

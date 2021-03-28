@@ -1,8 +1,7 @@
-use super::tree::{IsolationTree, IsolationTreeParams, MaxFeatures, MaxSamples};
-
+use super::tree::{IsolationTree, IsolationTreeParams};
 use linfa::{
     dataset::DatasetBase,
-    error::{Error, Result},
+    error::Result,
     traits::{Fit, Predict},
     Float,
 };
@@ -94,6 +93,7 @@ impl<F: Float, D: Data<Elem = F>> Predict<&ArrayBase<D, Ix2>, Result<Array1<F>>>
 
 #[cfg(test)]
 mod tests {
+    use super::super::{MaxFeatures, MaxSamples};
     use super::*;
     use linfa::dataset::DatasetBase;
     use ndarray::array;
@@ -120,37 +120,15 @@ mod tests {
             [-4.0, 7.0]
         ];
 
-        let data = array![
-            [-2.0],
-            [-1.0],
-            [1.0],
-            [1.0],
-            [2.0],
-            [-1.5],
-            [0.5],
-            [-0.5],
-            [4.0],
-            [-5.0],
-        ];
-
         let seed: u64 = 2;
         let dataset = DatasetBase::new(data.clone(), ());
-        let sample_size = dataset.records().nrows();
-        let num_features = dataset.records().ncols();
-        let tree_params = IsolationTreeParams::new(
-            MaxSamples::Absolute(sample_size),
-            MaxFeatures::Absolute(num_features),
-            seed,
-        );
-
-        let model = IsolationForestParams::new(1, &tree_params)
+        let tree_params = IsolationTreeParams::default().with_seed(seed);
+        let model = IsolationForestParams::new(3, &tree_params)
             .fit(&dataset)
             .unwrap();
-        let data = array![[0.1],];
 
         let preds = model.predict(&data).unwrap();
-        println!("{}", preds);
-        //assert_eq!(preds.mapv(|a| if a > 0.5 { 1 } else { 0 }).sum(), 2);
+        assert_eq!(preds.mapv(|a| if a > 0.5 { 1 } else { 0 }).sum(), 2);
     }
 
     #[test]
@@ -183,8 +161,6 @@ mod tests {
 
         let targets = ();
         let dataset = DatasetBase::new(data.clone(), targets);
-        let sample_size = dataset.records().nrows();
-        let num_features = dataset.records().ncols();
         let seed = 1;
         let tree_params =
             IsolationTreeParams::new(MaxSamples::Ratio(0.5), MaxFeatures::Ratio(0.5), seed);
@@ -194,5 +170,6 @@ mod tests {
             .unwrap();
 
         let preds = model.predict(&data).unwrap();
+        assert_eq!(preds.len(), data.nrows());
     }
 }

@@ -23,6 +23,15 @@ impl IsolationForestParams {
     }
 }
 
+impl Default for IsolationForestParams {
+    fn default() -> Self {
+        Self {
+            num_estimators: 100,
+            tree_hyperparameters: IsolationTreeParams::default(),
+        }
+    }
+}
+
 impl IsolationForestParams {
     pub fn num_estimators(&self) -> usize {
         self.num_estimators
@@ -90,6 +99,15 @@ mod tests {
     use ndarray::array;
 
     #[test]
+    fn test_hyperparameters() {
+        let params = IsolationForestParams::default();
+        assert_eq!(params.num_estimators, 100);
+        assert_eq!(params.tree_hyperparameters.seed(), 0);
+        let new_params = IsolationForestParams::default().with_num_estimators(10);
+        assert!(new_params.validate().is_ok())
+    }
+
+    #[test]
     fn other_small_toy_dataset() {
         let data = array![
             [-2.0, -1.0],
@@ -135,7 +153,7 @@ mod tests {
         //assert_eq!(preds.mapv(|a| if a > 0.5 { 1 } else { 0 }).sum(), 2);
     }
 
-    //#[test]
+    #[test]
     fn toy_dataset() {
         let data = array![
             [0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 1.0, -14.0, 0.0, -4.0, 0.0, 0.0, 0.0, 0.0,],

@@ -28,7 +28,8 @@ fn main() -> Result<()> {
     let model = forest_prams.fit(&dataset).unwrap();
     let preds = model.predict(&data).unwrap();
 
-    println!("{}", preds.mapv(|a| if a > 0.5 { 1 } else { 0 }));
     println!("{:?}", preds);
+    println!("{}", preds.mapv(|a| if a > 0.5 { 1 } else { 0 }));
+    // expected result [0, 0, 0, 0, 0, 0, 1, 1]
     Ok(())
 }

@@ -5,3 +5,10 @@
 Cargo.lock
 tags
 cscope.files
+
+/py-isoforest/__pycache__/
+/py-isoforest/*.py[cod]
+/py-isoforest/eggs/
+/py-isoforest/*.egg-info/
+/py-isoforest/.installed.cfg
+/py-isoforest/*.egg

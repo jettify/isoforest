@@ -1,14 +1,14 @@
 # IsolationForest
 [![ci-badge](https://github.com/jettify/isoforest/workflows/CI/badge.svg)](https://github.com/jettify/isoforest/actions?query=workflow%3ACI)
 
+Isolation forest implementation in Rust with option Python bindings.
+
  # Example
 
  ```rust
 
-use isoforest::{IsolationForestParams, IsolationTreeParams};
+use isoforest::{IsolationForestParams, IsolationTreeParams, MaxFeatures, MaxSamples};
 use ndarray::array;
-use ndarray_rand::rand::SeedableRng;
-use rand_isaac::Isaac64Rng;
 use std::io::Result;
 
 use linfa::dataset::DatasetBase;
@@ -26,20 +26,21 @@ fn main() -> Result<()> {
         [-4.0, 7.0]  // anomaly
     ];
 
-    let rng = Isaac64Rng::seed_from_u64(4);
     let dataset = DatasetBase::new(data.clone(), ());
-    let sample_size = dataset.records().nrows();
-    let num_features = dataset.records().ncols();
-    let num_trees = 3;
+    let tree_params = IsolationTreeParams::default()
+        .with_max_samples(MaxSamples::Auto)
+        .with_max_features(MaxFeatures::Ratio(1.0))
+        .with_seed(3);
 
-    let tree_params = IsolationTreeParams::new(sample_size, num_features, rng);
-    let forest_prams = IsolationForestParams::new(num_trees, &tree_params);
+    let forest_prams = IsolationForestParams::new(3, &tree_params);
+
     let model = forest_prams.fit(&dataset).unwrap();
-
+    let scores = model.decision_function(&data).unwrap();
     let preds = model.predict(&data).unwrap();
 
-    println!("{}", preds.mapv(|a| if a > 0.5 { 1 } else { 0 }));
-    // expected result [0, 0, 0, 0, 0, 0, 1, 1]
+    println!("{:?}", preds);
+    println!("{:?}", scores);
+    // expected result [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0]
     Ok(())
 }
 ```

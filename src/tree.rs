@@ -409,6 +409,11 @@ mod tests {
         );
         let tree = params.fit(&dataset).unwrap();
         let preds = tree.predict(&data);
-        assert_eq!(preds.mapv(|a| if a / tree.average_path > 0.0 { 1 } else { 0 }).sum(), 8);
+        assert_eq!(
+            preds
+                .mapv(|a| if a / tree.average_path > 0.0 { 1 } else { 0 })
+                .sum(),
+            8
+        );
     }
 }

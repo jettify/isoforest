@@ -77,17 +77,27 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
     }
 }
 
-impl<F: Float, D: Data<Elem = F>> Predict<&ArrayBase<D, Ix2>, Result<Array1<F>>>
-    for IsolationForest<F>
-{
-    fn predict(&self, x: &ArrayBase<D, Ix2>) -> Result<Array1<F>> {
+impl<F: Float> IsolationForest<F> {
+    pub fn decision_function<D: Data<Elem = F>>(&self, x: &ArrayBase<D, Ix2>) -> Result<Array1<F>> {
         let mut result: Array1<F> = Array1::zeros(x.nrows());
         let num_trees = F::from_usize(self.trees.len()).unwrap();
         for i in 0..self.trees.len() {
             result = result + self.trees[i].predict(&x) / (num_trees * self.trees[i].average_path);
         }
         result.mapv_inplace(|v| F::from_f32(2.0).unwrap().powf(-v));
-        Ok(result)
+        let offset = F::from_f32(-0.5).unwrap();
+        Ok(-result - offset)
+    }
+}
+
+impl<F: Float, D: Data<Elem = F>> Predict<&ArrayBase<D, Ix2>, Result<Array1<F>>>
+    for IsolationForest<F>
+{
+    fn predict(&self, x: &ArrayBase<D, Ix2>) -> Result<Array1<F>> {
+        let scores = self.decision_function(x)?;
+        let one = F::from_f32(1.0).unwrap();
+        let minus_one = F::from_f32(-1.0).unwrap();
+        Ok(scores.mapv(|a| if a < F::zero() { minus_one } else { one }))
     }
 }
 
@@ -127,8 +137,11 @@ mod tests {
             .fit(&dataset)
             .unwrap();
 
+        let scores = model.decision_function(&data).unwrap();
+        assert_eq!(scores.mapv(|a| if a < 0.0 { 1 } else { 0 }).sum(), 2);
+
         let preds = model.predict(&data).unwrap();
-        assert_eq!(preds.mapv(|a| if a > 0.5 { 1 } else { 0 }).sum(), 2);
+        assert_eq!(preds.mapv(|a| if a < 0.0 { 1 } else { 0 }).sum(), 2);
     }
 
     #[test]

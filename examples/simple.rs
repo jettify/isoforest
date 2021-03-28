@@ -26,10 +26,11 @@ fn main() -> Result<()> {
     let forest_prams = IsolationForestParams::new(3, &tree_params);
 
     let model = forest_prams.fit(&dataset).unwrap();
+    let scores = model.decision_function(&data).unwrap();
     let preds = model.predict(&data).unwrap();
 
     println!("{:?}", preds);
-    println!("{}", preds.mapv(|a| if a > 0.5 { 1 } else { 0 }));
-    // expected result [0, 0, 0, 0, 0, 0, 1, 1]
+    println!("{:?}", scores);
+    // expected result [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0]
     Ok(())
 }

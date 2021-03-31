@@ -1,6 +1,6 @@
 use ndarray::{s, Array1, ArrayBase, ArrayView1, ArrayViewMut1, Axis, Data, Ix1, Ix2, Slice};
 use ndarray_rand::rand::SeedableRng;
-use ndarray_rand::{rand::seq::SliceRandom, rand::Rng};
+use ndarray_rand::{rand::seq::SliceRandom, rand::Rng, RandomExt};
 use rand_isaac::Isaac64Rng;
 use std::fmt::Debug;
 
@@ -248,19 +248,16 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
         let max_features = self.num_features(cols);
         let max_samples = self.num_samples(nrows);
 
-        let _v: Vec<usize> = (0..cols).collect();
-        let features: Vec<usize> = _v
-            .choose_multiple(&mut rng, max_features)
-            .cloned()
-            .collect();
-
-        let sample_vec: Vec<usize> = (0..nrows)
-            .collect::<Vec<usize>>()
-            .choose_multiple(&mut rng, max_samples)
-            .cloned()
-            .collect();
-
+        let mut sample_vec = (0..nrows).collect::<Vec<_>>();
+        sample_vec.shuffle(&mut rng);
+        sample_vec.truncate(max_samples);
+        let sample_vec = Array1::from(sample_vec);
         let mut sample: Array1<usize> = Array1::from(sample_vec);
+
+        let mut features_vec = (0..cols).collect::<Vec<_>>();
+        features_vec.shuffle(&mut rng);
+        features_vec.truncate(max_features);
+        let features = Array1::from(features_vec);
 
         let mut rng = Isaac64Rng::seed_from_u64(self.seed());
 
@@ -281,7 +278,7 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
 
             let space = sample.slice_axis_mut(Axis(0), Slice::from(rec.start..rec.end));
 
-            let feature: usize = *features.choose(&mut rng).unwrap();
+            let feature: usize = features[rng.gen_range(0, features.len())];
             let min_idx = space
                 .iter()
                 .min_by(|l, r| x[[**l, feature]].partial_cmp(&x[[**r, feature]]).unwrap())

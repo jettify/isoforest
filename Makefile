@@ -20,6 +20,8 @@ doc:
 
 example:
 	cargo run --example simple
+bench:
+	cargo bench --verbose
 
 fmt:
 	cargo-fmt

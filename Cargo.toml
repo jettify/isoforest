@@ -16,7 +16,11 @@ ndarray-stats = "0.3"
 [dev-dependencies]
 rand_isaac = "0.2.0"
 approx = "0.3"
+criterion = "0.3"
 
+[[bench]]
+name = "isoforest_benchmark"
+harness = false
 
 [dependencies.serde_crate]
 package = "serde"

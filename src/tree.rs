@@ -1,6 +1,6 @@
 use ndarray::{s, Array1, ArrayBase, ArrayView1, ArrayViewMut1, Axis, Data, Ix1, Ix2, Slice};
 use ndarray_rand::rand::SeedableRng;
-use ndarray_rand::{rand::seq::SliceRandom, rand::Rng, RandomExt};
+use ndarray_rand::{rand::seq::SliceRandom, rand::Rng};
 use rand_isaac::Isaac64Rng;
 use std::fmt::Debug;
 
@@ -279,18 +279,19 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
             let space = sample.slice_axis_mut(Axis(0), Slice::from(rec.start..rec.end));
 
             let feature: usize = features[rng.gen_range(0, features.len())];
-            let min_idx = space
-                .iter()
-                .min_by(|l, r| x[[**l, feature]].partial_cmp(&x[[**r, feature]]).unwrap())
-                .unwrap();
 
-            let max_idx = space
-                .iter()
-                .max_by(|l, r| x[[**l, feature]].partial_cmp(&x[[**r, feature]]).unwrap())
-                .unwrap();
+            let min_max: (F, F) = space.fold(
+                (x[[space[0], feature]], x[[space[0], feature]]),
+                |acc, v| {
+                    (
+                        F::min(acc.0, x[[*v, feature]]),
+                        F::max(acc.1, x[[*v, feature]]),
+                    )
+                },
+            );
 
-            let min = x[[*min_idx, feature]].to_f64().unwrap();
-            let max = x[[*max_idx, feature]].to_f64().unwrap();
+            let min = min_max.0.to_f64().unwrap();
+            let max = min_max.1.to_f64().unwrap();
 
             if &min == &max {
                 tree.add_leaf(rec.depth, rec.end - rec.start, rec.parent, rec.is_left);

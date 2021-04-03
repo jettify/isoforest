@@ -3,10 +3,10 @@ use ndarray_rand::rand::SeedableRng;
 use ndarray_rand::{rand::seq::SliceRandom, rand::Rng};
 use rand_isaac::Isaac64Rng;
 use std::fmt::Debug;
+use super::error::Result;
 
 use linfa::{
     dataset::DatasetBase,
-    error::Result,
     traits::{Fit, Predict},
     Float,
 };

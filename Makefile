@@ -22,6 +22,7 @@ example:
 	cargo run --example simple
 bench:
 	cargo bench --verbose
+	@echo "open file://`pwd`/target/criterion/report/index.html"
 
 fmt:
 	cargo-fmt

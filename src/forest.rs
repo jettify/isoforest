@@ -1,7 +1,7 @@
 use super::tree::{IsolationTree, IsolationTreeParams};
+use super::error::Result;
 use linfa::{
     dataset::DatasetBase,
-    error::Result,
     traits::{Fit, Predict},
     Float,
 };

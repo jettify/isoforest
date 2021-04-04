@@ -1,5 +1,5 @@
-use super::tree::{IsolationTree, IsolationTreeParams};
 use super::error::Result;
+use super::tree::{IsolationTree, IsolationTreeParams};
 use linfa::{
     dataset::DatasetBase,
     traits::{Fit, Predict},

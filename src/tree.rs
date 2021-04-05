@@ -229,6 +229,29 @@ impl<F: Float> IsolationTree<F> {
             average_path: F::zero(),
         }
     }
+
+    fn default_with_capacity(capacity: usize) -> Self {
+        let v: Vec<F> = Vec::with_capacity(capacity);
+        IsolationTree {
+            nodes: Vec::with_capacity(capacity),
+            left_child: Vec::with_capacity(capacity),
+            right_child: Vec::with_capacity(capacity),
+            feature: Vec::with_capacity(capacity),
+            split_value: v,
+            depth: Vec::with_capacity(capacity),
+            size: Vec::with_capacity(capacity),
+            average_path: F::zero(),
+        }
+    }
+    fn shrink_to_fit(&mut self) {
+        self.nodes.shrink_to_fit();
+        self.left_child.shrink_to_fit();
+        self.right_child.shrink_to_fit();
+        self.feature.shrink_to_fit();
+        self.split_value.shrink_to_fit();
+        self.depth.shrink_to_fit();
+        self.size.shrink_to_fit();
+    }
 }
 
 fn clip(v: usize, min: usize, max: usize) -> usize {
@@ -241,8 +264,8 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
     fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Self::Object {
         self.validate()?;
         let x = dataset.records();
-        let nrows = dataset.records().nrows();
-        let cols = dataset.records().ncols();
+        let nrows = x.nrows();
+        let cols = x.ncols();
 
         let mut rng = Isaac64Rng::seed_from_u64(self.seed());
         let max_features = self.num_features(cols);
@@ -262,7 +285,10 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
         let mut rng = Isaac64Rng::seed_from_u64(self.seed());
 
         let mut stack: Vec<TreeSpace> = vec![TreeSpace::new(0, sample.len(), 0, true, None)];
-        let mut tree = IsolationTree::default();
+
+        let capacity: usize = (2 as usize).pow((self.max_depth(max_samples) + 1) as u32) - 1;
+        let mut tree = IsolationTree::default_with_capacity(capacity);
+
         tree.average_path = average_path_length(sample.len());
 
         while stack.len() != 0 {
@@ -330,10 +356,12 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
                 Some(parent),
             ));
         }
+        tree.shrink_to_fit();
         Ok(tree)
     }
 }
 
+#[inline]
 fn update_sample<F: Float>(
     data: &ArrayView1<F>,
     sample: &mut ArrayViewMut1<usize>,

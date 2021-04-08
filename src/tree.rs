@@ -254,8 +254,24 @@ impl<F: Float> IsolationTree<F> {
     }
 }
 
+#[inline]
 fn clip(v: usize, min: usize, max: usize) -> usize {
     usize::min(usize::max(min, v), max)
+}
+
+#[inline]
+fn sample_indexes<R: Rng>(
+    start: usize,
+    end: usize,
+    max_samples: usize,
+    rng: &mut R,
+) -> Array1<usize> {
+    let mut sample_vec = (start..end).collect::<Vec<_>>();
+    sample_vec.shuffle(rng);
+    sample_vec.truncate(max_samples);
+    let sample_vec = Array1::from(sample_vec);
+    let sample: Array1<usize> = Array1::from(sample_vec);
+    sample
 }
 
 impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for IsolationTreeParams {
@@ -271,18 +287,8 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
         let max_features = self.num_features(cols);
         let max_samples = self.num_samples(nrows);
 
-        let mut sample_vec = (0..nrows).collect::<Vec<_>>();
-        sample_vec.shuffle(&mut rng);
-        sample_vec.truncate(max_samples);
-        let sample_vec = Array1::from(sample_vec);
-        let mut sample: Array1<usize> = Array1::from(sample_vec);
-
-        let mut features_vec = (0..cols).collect::<Vec<_>>();
-        features_vec.shuffle(&mut rng);
-        features_vec.truncate(max_features);
-        let features = Array1::from(features_vec);
-
-        let mut rng = Isaac64Rng::seed_from_u64(self.seed());
+        let mut sample = sample_indexes(0, nrows, max_samples, &mut rng);
+        let features = sample_indexes(0, cols, max_features, &mut rng);
 
         let mut stack: Vec<TreeSpace> = vec![TreeSpace::new(0, sample.len(), 0, true, None)];
 

@@ -1,4 +1,3 @@
-use super::error::Result;
 use ndarray::{s, Array1, ArrayBase, ArrayView1, ArrayViewMut1, Axis, Data, Ix1, Ix2, Slice};
 use ndarray_rand::rand::SeedableRng;
 use ndarray_rand::{rand::seq::SliceRandom, rand::Rng};
@@ -7,11 +6,13 @@ use std::fmt::Debug;
 
 use linfa::{
     dataset::DatasetBase,
+    error::Error,
+    error::Result,
     traits::{Fit, Predict},
     Float,
 };
 
-const EULER_GAMMA: f64 = 0.57721566490153286060;
+const EULER_GAMMA: f64 = 0.577_215_664_901_532_9;
 
 fn average_path_length<F: Float>(nsamples: usize) -> F {
     let n = nsamples as f64;
@@ -173,6 +174,22 @@ impl<F: Float, D: Data<Elem = F>> Predict<&ArrayBase<D, Ix2>, Array1<F>> for Iso
     }
 }
 
+impl<F: Float> Default for IsolationTree<F> {
+    fn default() -> Self {
+        let v: Vec<F> = Vec::new();
+        IsolationTree {
+            nodes: vec![],
+            left_child: vec![],
+            right_child: vec![],
+            feature: vec![],
+            split_value: v,
+            depth: vec![],
+            size: vec![],
+            average_path: F::zero(),
+        }
+    }
+}
+
 impl<F: Float> IsolationTree<F> {
     fn is_leaf(&self, node_id: usize) -> bool {
         self.left_child[node_id].is_none() && self.right_child[node_id].is_none()
@@ -214,20 +231,6 @@ impl<F: Float> IsolationTree<F> {
         is_left: bool,
     ) -> usize {
         self.add_node(0, F::zero(), depth, size, parent, is_left)
-    }
-
-    fn default() -> Self {
-        let v: Vec<F> = Vec::new();
-        IsolationTree {
-            nodes: vec![],
-            left_child: vec![],
-            right_child: vec![],
-            feature: vec![],
-            split_value: v,
-            depth: vec![],
-            size: vec![],
-            average_path: F::zero(),
-        }
     }
 
     fn default_with_capacity(capacity: usize) -> Self {
@@ -274,10 +277,10 @@ fn sample_indexes<R: Rng>(
     sample
 }
 
-impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for IsolationTreeParams {
-    type Object = Result<IsolationTree<F>>;
+impl<'a, F: Float, D: Data<Elem = F>, T> Fit<ArrayBase<D, Ix2>, T, Error> for IsolationTreeParams {
+    type Object = IsolationTree<F>;
 
-    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Self::Object {
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object> {
         self.validate()?;
         let x = dataset.records();
         let nrows = x.nrows();
@@ -297,7 +300,7 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
 
         tree.average_path = average_path_length(sample.len());
 
-        while stack.len() != 0 {
+        while !stack.is_empty() {
             let rec: TreeSpace = stack.pop().unwrap();
             if rec.depth >= self.max_depth(max_samples) {
                 tree.add_leaf(rec.depth, rec.end - rec.start, rec.parent, rec.is_left);
@@ -325,7 +328,7 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for Isola
             let min = min_max.0.to_f64().unwrap();
             let max = min_max.1.to_f64().unwrap();
 
-            if &min == &max {
+            if (min - max).abs() <= f64::EPSILON {
                 tree.add_leaf(rec.depth, rec.end - rec.start, rec.parent, rec.is_left);
                 continue;
             }

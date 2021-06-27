@@ -6,8 +6,8 @@ build:
 
 lint:
 	touch src/lib.rs
-	cargo check
 	cargo clippy
+	cargo check
 
 clean:
 	cargo clean

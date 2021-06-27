@@ -1,7 +1,8 @@
-use super::error::Result;
 use super::tree::{IsolationTree, IsolationTreeParams};
 use linfa::{
     dataset::DatasetBase,
+    error::Error,
+    error::Result,
     traits::{Fit, Predict},
     Float,
 };
@@ -60,10 +61,12 @@ pub struct IsolationForest<F> {
     pub trees: Vec<IsolationTree<F>>,
 }
 
-impl<'a, F: Float, D: Data<Elem = F>, T> Fit<'a, ArrayBase<D, Ix2>, T> for IsolationForestParams {
-    type Object = Result<IsolationForest<F>>;
+impl<'a, F: Float, D: Data<Elem = F>, T> Fit<ArrayBase<D, Ix2>, T, Error>
+    for IsolationForestParams
+{
+    type Object = IsolationForest<F>;
 
-    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Self::Object {
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object> {
         let mut trees = Vec::with_capacity(self.num_estimators);
         self.validate()?;
         for i in 0..self.num_estimators {

@@ -7,15 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-linfa = "0.3.1"
+linfa = "0.4.0"
 rand_isaac = "0.2.0"
-ndarray = { version = "0.13" , features = ["rayon", "approx"]}
+ndarray = { version = "0.14" , features = ["rayon", "approx"]}
 ndarray-rand = "0.11"
 ndarray-stats = "0.3"
 thiserror = "1"
 
 [dev-dependencies]
-rand_isaac = "0.2.0"
 approx = "0.3"
 criterion = "0.3"
 

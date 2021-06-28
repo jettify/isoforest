@@ -2,6 +2,7 @@ use ndarray::{s, Array1, ArrayBase, ArrayView1, ArrayViewMut1, Axis, Data, Ix1, 
 use ndarray_rand::rand::SeedableRng;
 use ndarray_rand::{rand::seq::SliceRandom, rand::Rng};
 use rand_isaac::Isaac64Rng;
+use std::cmp::Ordering;
 use std::fmt::Debug;
 
 use linfa::{
@@ -16,12 +17,10 @@ const EULER_GAMMA: f64 = 0.577_215_664_901_532_9;
 
 fn average_path_length<F: Float>(nsamples: usize) -> F {
     let n = nsamples as f64;
-    let v: f64 = if nsamples > 2 {
-        2.0 * (f64::ln(n - 1.0) + EULER_GAMMA) - (2.0 * (n - 1.0) / n)
-    } else if nsamples == 2 {
-        1.0
-    } else {
-        0.0
+    let v: f64 = match nsamples.cmp(&2) {
+        Ordering::Greater => 2.0 * (f64::ln(n - 1.0) + EULER_GAMMA) - (2.0 * (n - 1.0) / n),
+        Ordering::Equal => 1.0,
+        Ordering::Less => 0.0,
     };
     F::from_f64(v).unwrap()
 }
@@ -148,9 +147,9 @@ pub struct IsolationTree<F> {
     pub average_path: F,
 }
 
-fn find_path_length<'a, F: Float>(
+fn find_path_length<F: Float>(
     x: &ArrayBase<impl Data<Elem = F>, Ix1>,
-    tree: &'a IsolationTree<F>,
+    tree: &IsolationTree<F>,
     node_id: usize,
     d: usize,
 ) -> F {
@@ -272,7 +271,6 @@ fn sample_indexes<R: Rng>(
     let mut sample_vec = (start..end).collect::<Vec<_>>();
     sample_vec.shuffle(rng);
     sample_vec.truncate(max_samples);
-    let sample_vec = Array1::from(sample_vec);
     let sample: Array1<usize> = Array1::from(sample_vec);
     sample
 }
@@ -295,7 +293,7 @@ impl<'a, F: Float, D: Data<Elem = F>, T> Fit<ArrayBase<D, Ix2>, T, Error> for Is
 
         let mut stack: Vec<TreeSpace> = vec![TreeSpace::new(0, sample.len(), 0, true, None)];
 
-        let capacity: usize = (2 as usize).pow((self.max_depth(max_samples) + 1) as u32) - 1;
+        let capacity: usize = (2_usize).pow((self.max_depth(max_samples) + 1) as u32) - 1;
         let mut tree = IsolationTree::default_with_capacity(capacity);
 
         tree.average_path = average_path_length(sample.len());

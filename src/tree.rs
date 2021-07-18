@@ -14,6 +14,8 @@ use linfa::{
 };
 
 const EULER_GAMMA: f64 = 0.577_215_664_901_532_9;
+// sample size suggested but paper
+const DEFAULT_SAMPLE_SIZE: usize = 256;
 
 fn average_path_length<F: Float>(nsamples: usize) -> F {
     let n = nsamples as f64;
@@ -86,7 +88,7 @@ impl IsolationTreeParams {
         self.max_features
     }
 
-    pub fn max_depth(&self, max_samples: usize) -> usize {
+    fn max_depth(&self, max_samples: usize) -> usize {
         ((max_samples as f64).max(2.0)).log2().ceil() as usize
     }
 
@@ -94,7 +96,7 @@ impl IsolationTreeParams {
         self.seed
     }
 
-    pub fn num_features(&self, ncols: usize) -> usize {
+    fn num_features(&self, ncols: usize) -> usize {
         match self.max_features {
             MaxFeatures::Ratio(ratio) => clip((ncols as f32 * ratio) as usize, 1, ncols),
             MaxFeatures::Absolute(num) => clip(num, 1, ncols),
@@ -103,7 +105,7 @@ impl IsolationTreeParams {
 
     pub fn num_samples(&self, nrows: usize) -> usize {
         match self.max_samples {
-            MaxSamples::Auto => usize::min(256, nrows),
+            MaxSamples::Auto => usize::min(DEFAULT_SAMPLE_SIZE, nrows),
             MaxSamples::Ratio(ratio) => clip((nrows as f32 * ratio).ceil() as usize, 1, nrows),
             MaxSamples::Absolute(num) => clip(num, 1, nrows),
         }

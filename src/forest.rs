@@ -52,6 +52,14 @@ impl IsolationForestParams {
     }
 
     pub fn validate(&self) -> Result<()> {
+        if self.num_estimators == 0 {
+            return Err(Error::Parameters(format!(
+                "Parameter num_estimators can not be {}.",
+                self.num_estimators
+            )));
+        }
+        self.tree_hyperparameters.validate()?;
+
         Ok(())
     }
 }
@@ -117,7 +125,10 @@ mod tests {
         assert_eq!(params.num_estimators, 100);
         assert_eq!(params.tree_hyperparameters.seed(), 0);
         let new_params = IsolationForestParams::default().with_num_estimators(10);
-        assert!(new_params.validate().is_ok())
+        assert!(new_params.validate().is_ok());
+
+        let new_params = IsolationForestParams::default().with_num_estimators(0);
+        assert!(new_params.validate().is_err());
     }
 
     #[test]
